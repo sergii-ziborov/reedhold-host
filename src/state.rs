@@ -29,9 +29,23 @@ impl State {
         self.next_seat = self.next_seat.saturating_add(1);
         let now = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
         let id = format!("{:x}{:x}", self.next_seat, now);
-        self.talk = None;
+        let peer = session.peer_hex();
         self.seats.insert(id.clone(), session);
+        self.join_talk(&peer);
         id
+    }
+
+    /// Let a newcomer into the running fabric instead of rebuilding it.
+    ///
+    /// Rebuilding drops every relay queue, so one signup used to delete mail
+    /// that other seats had already sent and nobody had collected yet.
+    pub(crate) fn join_talk(&mut self, peer_hex: &str) {
+        let Some(talk) = self.talk.as_mut() else {
+            return;
+        };
+        if talk.admit(peer_hex).is_ok() {
+            let _ = talk.online(peer_hex);
+        }
     }
 
     pub(crate) fn seat(&self, id: &str) -> Result<&Session, String> {

@@ -53,7 +53,7 @@ POST /v1/alias/lookup         { nick }
 GET  /v1/contacts
 POST /v1/contacts             { identity, messaging_public, petname? }
 POST /v1/contacts/remove      { identity }
-GET  /v1/chats
+GET  /v1/chats                 also returns `threads`: sent and received, by conversation
 POST /v1/rooms/join           { topic }
 POST /v1/rooms/leave          { topic }
 POST /v1/rooms/post           { topic, text }

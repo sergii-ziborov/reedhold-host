@@ -32,6 +32,7 @@ struct ChatsOut {
     rooms: Vec<reedhold_api::RoomView>,
     interests: Vec<String>,
     catalog: Vec<String>,
+    threads: std::collections::BTreeMap<String, Vec<reedhold_api::TalkView>>,
 }
 
 pub(crate) fn claim(state: &Mutex<State>, seat: &str, body: &str) -> Reply {
@@ -70,8 +71,8 @@ pub(crate) fn add_contact(state: &Mutex<State>, seat: &str, body: &str) -> Reply
             &petname,
         )
         .map_err(|error| error.to_string())?;
-        host.talk = None;
         ensure_talk(host)?;
+        host.join_talk(&parsed.identity);
         Ok(view)
     })
 }
@@ -104,6 +105,7 @@ pub(crate) fn chats(state: &Mutex<State>, seat: &str) -> Reply {
             rooms: host.rooms.list(session),
             interests: host.rooms.interests(),
             catalog: TOPIC_CATALOG.iter().map(|topic| (*topic).to_owned()).collect(),
+            threads: session.threads(),
         })
     })
 }
