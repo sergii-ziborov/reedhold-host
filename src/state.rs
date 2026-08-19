@@ -95,6 +95,14 @@ impl State {
     }
 }
 
+/// Wall clock in seconds. Alias tombstones expire against this.
+pub(crate) fn now_secs() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|since| since.as_secs())
+        .unwrap_or(0)
+}
+
 pub(crate) fn locked(state: &Mutex<State>) -> Result<MutexGuard<'_, State>, String> {
     state.lock().map_err(|_| "lock".to_owned())
 }
