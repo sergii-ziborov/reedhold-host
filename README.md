@@ -45,6 +45,20 @@ POST /v1/talk/invite          { group, member, member_msg_pub }
 POST /v1/talk/send            { group, plaintext }
 POST /v1/talk/remove          { group, member }
 GET  /v1/talk/inbox
+GET  /v1/talk/circles
+POST /v1/alias                { nick }          not written into events
+POST /v1/alias/lookup         { nick }
+GET  /v1/contacts
+POST /v1/contacts             { identity, messaging_public, petname? }
+POST /v1/contacts/remove      { identity }
+GET  /v1/chats
+POST /v1/rooms/join           { topic }
+POST /v1/rooms/leave          { topic }
+POST /v1/rooms/post           { topic, text }
+GET  /v1/rooms
+POST /v1/interests            { topics }
+GET  /v1/interests
+GET  /v1/topics
 
 POST /v1/durable/open         { holders, company? }
 POST /v1/durable/put          { payload, tier? }

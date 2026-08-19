@@ -7,7 +7,9 @@ use crate::durable;
 use crate::recovery;
 use crate::rep;
 use crate::reply::Reply;
+use crate::rooms;
 use crate::sealed;
+use crate::social;
 use crate::state::State;
 use crate::sync;
 use crate::talk;
@@ -48,6 +50,20 @@ pub fn dispatch(state: &Mutex<State>, method: &str, url: &str, body: &str) -> Re
         ("POST", "/v1/talk/send") => talk::send(state, body),
         ("POST", "/v1/talk/remove") => talk::remove(state, body),
         ("GET", "/v1/talk/inbox") => talk::inbox(state),
+        ("GET", "/v1/talk/circles") => social::circles(state),
+        ("POST", "/v1/alias") => social::claim(state, body),
+        ("POST", "/v1/alias/lookup") => social::lookup(state, body),
+        ("GET", "/v1/contacts") => social::contacts(state),
+        ("POST", "/v1/contacts") => social::add_contact(state, body),
+        ("POST", "/v1/contacts/remove") => social::remove_contact(state, body),
+        ("GET", "/v1/chats") => social::chats(state),
+        ("POST", "/v1/rooms/join") => rooms::join(state, body),
+        ("POST", "/v1/rooms/leave") => rooms::leave(state, body),
+        ("POST", "/v1/rooms/post") => rooms::post(state, body),
+        ("GET", "/v1/rooms") => rooms::list(state),
+        ("POST", "/v1/interests") => rooms::set_interests(state, body),
+        ("GET", "/v1/interests") => rooms::interests(state),
+        ("GET", "/v1/topics") => rooms::catalog(),
         ("POST", "/v1/durable/open") => durable::open(state, body),
         ("POST", "/v1/durable/put") => durable::put(state, body),
         ("POST", "/v1/durable/get") => durable::get(state, body),

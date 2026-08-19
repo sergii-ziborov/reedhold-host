@@ -2,8 +2,8 @@
 
 use crate::reply::{Reply, fail, json, ok_flag};
 use reedhold_api::{
-    AccountView, ChainSession, DurableSession, MarketSession, RepSession, Session, TalkNet,
-    WorkSession,
+    AccountView, AliasDirectory, ChainSession, DurableSession, MarketSession, RepSession,
+    RoomBoard, Session, TalkNet, WorkSession,
 };
 use std::sync::{Mutex, MutexGuard};
 
@@ -17,6 +17,8 @@ pub struct State {
     pub(crate) rep: Option<RepSession>,
     pub(crate) ads: Option<MarketSession>,
     pub(crate) work: Option<WorkSession>,
+    pub(crate) aliases: AliasDirectory,
+    pub(crate) rooms: RoomBoard,
 }
 
 impl State {

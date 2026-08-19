@@ -533,7 +533,7 @@ dependencies = [
 [[package]]
 name = "reedhold-ads"
 version = "0.1.0"
-source = "git+https://github.com/sergii-ziborov/reedhold#749906183ad72f356aba77046deb27f8ee1d0027"
+source = "git+https://github.com/sergii-ziborov/reedhold#2069f17ae9444248a7128969447d4cd5695dc865"
 dependencies = [
  "ed25519-dalek",
  "reedhold-codec",
@@ -544,7 +544,7 @@ dependencies = [
 [[package]]
 name = "reedhold-api"
 version = "0.1.0"
-source = "git+https://github.com/sergii-ziborov/reedhold#749906183ad72f356aba77046deb27f8ee1d0027"
+source = "git+https://github.com/sergii-ziborov/reedhold#2069f17ae9444248a7128969447d4cd5695dc865"
 dependencies = [
  "blazingly-json",
  "reedhold-ads",
@@ -559,12 +559,13 @@ dependencies = [
  "reedhold-store",
  "reedhold-work",
  "serde",
+ "sha2",
 ]
 
 [[package]]
 name = "reedhold-chain"
 version = "0.1.0"
-source = "git+https://github.com/sergii-ziborov/reedhold#749906183ad72f356aba77046deb27f8ee1d0027"
+source = "git+https://github.com/sergii-ziborov/reedhold#2069f17ae9444248a7128969447d4cd5695dc865"
 dependencies = [
  "reedhold-codec",
  "reedhold-core",
@@ -574,7 +575,7 @@ dependencies = [
 [[package]]
 name = "reedhold-codec"
 version = "0.1.0"
-source = "git+https://github.com/sergii-ziborov/reedhold#749906183ad72f356aba77046deb27f8ee1d0027"
+source = "git+https://github.com/sergii-ziborov/reedhold#2069f17ae9444248a7128969447d4cd5695dc865"
 dependencies = [
  "reedhold-core",
 ]
@@ -582,12 +583,12 @@ dependencies = [
 [[package]]
 name = "reedhold-core"
 version = "0.1.0"
-source = "git+https://github.com/sergii-ziborov/reedhold#749906183ad72f356aba77046deb27f8ee1d0027"
+source = "git+https://github.com/sergii-ziborov/reedhold#2069f17ae9444248a7128969447d4cd5695dc865"
 
 [[package]]
 name = "reedhold-event"
 version = "0.1.0"
-source = "git+https://github.com/sergii-ziborov/reedhold#749906183ad72f356aba77046deb27f8ee1d0027"
+source = "git+https://github.com/sergii-ziborov/reedhold#2069f17ae9444248a7128969447d4cd5695dc865"
 dependencies = [
  "chacha20poly1305",
  "ed25519-dalek",
@@ -611,7 +612,7 @@ dependencies = [
 [[package]]
 name = "reedhold-identity"
 version = "0.1.0"
-source = "git+https://github.com/sergii-ziborov/reedhold#749906183ad72f356aba77046deb27f8ee1d0027"
+source = "git+https://github.com/sergii-ziborov/reedhold#2069f17ae9444248a7128969447d4cd5695dc865"
 dependencies = [
  "ed25519-dalek",
  "getrandom",
@@ -625,7 +626,7 @@ dependencies = [
 [[package]]
 name = "reedhold-mesh"
 version = "0.1.0"
-source = "git+https://github.com/sergii-ziborov/reedhold#749906183ad72f356aba77046deb27f8ee1d0027"
+source = "git+https://github.com/sergii-ziborov/reedhold#2069f17ae9444248a7128969447d4cd5695dc865"
 dependencies = [
  "reedhold-codec",
  "reedhold-core",
@@ -635,7 +636,7 @@ dependencies = [
 [[package]]
 name = "reedhold-protocol"
 version = "0.1.0"
-source = "git+https://github.com/sergii-ziborov/reedhold#749906183ad72f356aba77046deb27f8ee1d0027"
+source = "git+https://github.com/sergii-ziborov/reedhold#2069f17ae9444248a7128969447d4cd5695dc865"
 dependencies = [
  "getrandom",
  "reedhold-codec",
@@ -649,7 +650,7 @@ dependencies = [
 [[package]]
 name = "reedhold-recovery"
 version = "0.1.0"
-source = "git+https://github.com/sergii-ziborov/reedhold#749906183ad72f356aba77046deb27f8ee1d0027"
+source = "git+https://github.com/sergii-ziborov/reedhold#2069f17ae9444248a7128969447d4cd5695dc865"
 dependencies = [
  "argon2",
  "chacha20poly1305",
@@ -662,7 +663,7 @@ dependencies = [
 [[package]]
 name = "reedhold-rep"
 version = "0.1.0"
-source = "git+https://github.com/sergii-ziborov/reedhold#749906183ad72f356aba77046deb27f8ee1d0027"
+source = "git+https://github.com/sergii-ziborov/reedhold#2069f17ae9444248a7128969447d4cd5695dc865"
 dependencies = [
  "reedhold-core",
 ]
@@ -670,7 +671,7 @@ dependencies = [
 [[package]]
 name = "reedhold-storage"
 version = "0.1.0"
-source = "git+https://github.com/sergii-ziborov/reedhold#749906183ad72f356aba77046deb27f8ee1d0027"
+source = "git+https://github.com/sergii-ziborov/reedhold#2069f17ae9444248a7128969447d4cd5695dc865"
 dependencies = [
  "reed-solomon-erasure",
  "reedhold-core",
@@ -680,7 +681,7 @@ dependencies = [
 [[package]]
 name = "reedhold-store"
 version = "0.1.0"
-source = "git+https://github.com/sergii-ziborov/reedhold#749906183ad72f356aba77046deb27f8ee1d0027"
+source = "git+https://github.com/sergii-ziborov/reedhold#2069f17ae9444248a7128969447d4cd5695dc865"
 dependencies = [
  "reedhold-codec",
  "reedhold-core",
@@ -691,7 +692,7 @@ dependencies = [
 [[package]]
 name = "reedhold-work"
 version = "0.1.0"
-source = "git+https://github.com/sergii-ziborov/reedhold#749906183ad72f356aba77046deb27f8ee1d0027"
+source = "git+https://github.com/sergii-ziborov/reedhold#2069f17ae9444248a7128969447d4cd5695dc865"
 dependencies = [
  "reedhold-core",
 ]

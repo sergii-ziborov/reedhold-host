@@ -5,7 +5,7 @@ use crate::reply::{Reply, bad};
 use crate::state::{self, State};
 use crate::sync::{company_hex, prior_commit};
 use reedhold_api::TalkNet;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 
 #[derive(Deserialize)]
@@ -37,6 +37,15 @@ struct GroupTextBody {
 struct RemoveBody {
     group: String,
     member: String,
+}
+
+#[derive(Serialize)]
+struct DmOut {
+    path: String,
+    hop: Option<String>,
+    conversation: String,
+    text: String,
+    from: String,
 }
 
 pub(crate) fn open(state: &Mutex<State>, body: &str) -> Reply {
@@ -76,9 +85,21 @@ pub(crate) fn dm(state: &Mutex<State>, body: &str) -> Reply {
         Err(error) => return bad(&error),
     };
     state::mutate(state, |host| {
+        crate::social::ensure_talk(host)?;
         let (talk, session) = host.talk_and_session().map_err(str::to_owned)?;
-        talk.dm(session, &parsed.to, &parsed.to_msg_pub, &parsed.plaintext)
-            .map_err(|error| error.to_string())
+        let from = session.peer_hex();
+        let route = talk
+            .dm(session, &parsed.to, &parsed.to_msg_pub, &parsed.plaintext)
+            .map_err(|error| error.to_string())?;
+        let conversation = reedhold_api::dm_conversation_hex(&from, &parsed.to)
+            .map_err(|error| error.to_string())?;
+        Ok(DmOut {
+            path: route.path,
+            hop: route.hop,
+            conversation,
+            text: parsed.plaintext.clone(),
+            from,
+        })
     })
 }
 
@@ -88,6 +109,7 @@ pub(crate) fn create_group(state: &Mutex<State>, body: &str) -> Reply {
         Err(error) => return bad(&error),
     };
     state::mutate(state, |host| {
+        crate::social::ensure_talk(host)?;
         let (talk, session) = host.talk_and_session().map_err(str::to_owned)?;
         talk.create_circle(session, &parsed.name).map_err(|error| error.to_string())
     })
@@ -99,6 +121,7 @@ pub(crate) fn invite(state: &Mutex<State>, body: &str) -> Reply {
         Err(error) => return bad(&error),
     };
     state::mutate(state, |host| {
+        crate::social::ensure_talk(host)?;
         let (talk, session) = host.talk_and_session().map_err(str::to_owned)?;
         talk.invite(session, &parsed.group, &parsed.member, &parsed.member_msg_pub)
             .map_err(|error| error.to_string())
@@ -111,6 +134,7 @@ pub(crate) fn send(state: &Mutex<State>, body: &str) -> Reply {
         Err(error) => return bad(&error),
     };
     state::mutate(state, |host| {
+        crate::social::ensure_talk(host)?;
         let (talk, session) = host.talk_and_session().map_err(str::to_owned)?;
         talk.send_circle(session, &parsed.group, &parsed.plaintext)
             .map_err(|error| error.to_string())
@@ -123,6 +147,7 @@ pub(crate) fn remove(state: &Mutex<State>, body: &str) -> Reply {
         Err(error) => return bad(&error),
     };
     state::mutate(state, |host| {
+        crate::social::ensure_talk(host)?;
         let (talk, session) = host.talk_and_session().map_err(str::to_owned)?;
         talk.remove(session, &parsed.group, &parsed.member).map_err(|error| error.to_string())
     })
@@ -130,6 +155,7 @@ pub(crate) fn remove(state: &Mutex<State>, body: &str) -> Reply {
 
 pub(crate) fn inbox(state: &Mutex<State>) -> Reply {
     state::mutate(state, |host| {
+        crate::social::ensure_talk(host)?;
         let (talk, session) = host.talk_and_session().map_err(str::to_owned)?;
         talk.inbox(session).map_err(|error| error.to_string())
     })

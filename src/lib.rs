@@ -10,8 +10,10 @@ mod durable;
 mod recovery;
 mod rep;
 mod reply;
+mod rooms;
 mod routes;
 mod sealed;
+mod social;
 mod state;
 mod sync;
 mod talk;
@@ -28,3 +30,5 @@ pub use state::State;
 mod api_tests;
 #[cfg(test)]
 mod sandbox_tests;
+#[cfg(test)]
+mod social_tests;
