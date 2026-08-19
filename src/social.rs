@@ -33,6 +33,7 @@ struct ChatsOut {
     interests: Vec<String>,
     catalog: Vec<String>,
     threads: std::collections::BTreeMap<String, Vec<reedhold_api::TalkView>>,
+    requests: Vec<reedhold_api::RequestView>,
 }
 
 pub(crate) fn claim(state: &Mutex<State>, seat: &str, body: &str) -> Reply {
@@ -106,6 +107,7 @@ pub(crate) fn chats(state: &Mutex<State>, seat: &str) -> Reply {
             interests: host.rooms.interests(),
             catalog: TOPIC_CATALOG.iter().map(|topic| (*topic).to_owned()).collect(),
             threads: session.threads(),
+            requests: session.requests(),
         })
     })
 }
