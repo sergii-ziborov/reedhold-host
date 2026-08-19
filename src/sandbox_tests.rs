@@ -7,6 +7,7 @@ use std::sync::Mutex;
 #[derive(Deserialize)]
 struct Created {
     account: IdentityOnly,
+    seat: String,
 }
 
 #[derive(Deserialize)]
@@ -69,7 +70,12 @@ fn hex(byte: u8) -> String {
 }
 
 fn call(state: &Mutex<State>, method: &str, url: &str, body: &str) -> (u16, String) {
-    let reply = dispatch(state, method, url, body);
+    let reply = dispatch(state, method, url, body, "");
+    (reply.status, reply.body)
+}
+
+fn as_seat(state: &Mutex<State>, method: &str, url: &str, body: &str, seat: &str) -> (u16, String) {
+    let reply = dispatch(state, method, url, body, seat);
     (reply.status, reply.body)
 }
 
@@ -98,12 +104,13 @@ fn talk_opens_and_creates_a_group() {
     let open = format!("{{\"epoch\":4,\"candidates\":[{listed}],\"relay_count\":2}}");
     let (status, raw) = call(&state, "POST", "/v1/talk/open", &open);
     assert_eq!(status, 200, "{raw}");
-    let (status, raw) = call(&state, "POST", "/v1/talk/group", "{\"name\":\"room\"}");
+    let (status, raw) =
+        as_seat(&state, "POST", "/v1/talk/group", "{\"name\":\"room\"}", &created.seat);
     assert_eq!(status, 200, "{raw}");
     let group: CircleBare = blazingly_json::from_str(&raw).expect("group");
     assert_eq!(group.name, "room");
     assert!(!group.id.is_empty());
-    let (status, raw) = call(&state, "GET", "/v1/talk/inbox", "");
+    let (status, raw) = as_seat(&state, "GET", "/v1/talk/inbox", "", &created.seat);
     assert_eq!(status, 200, "{raw}");
     let _ = created.account.messaging_public;
 }

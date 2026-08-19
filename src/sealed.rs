@@ -6,16 +6,14 @@ use crate::state::State;
 use reedhold_api::Session;
 use std::sync::Mutex;
 
-pub(crate) fn emit_sealed(state: &Mutex<State>, body: &str) -> Reply {
+pub(crate) fn emit_sealed(state: &Mutex<State>, seat: &str, body: &str) -> Reply {
     let parsed = match parse_json::<SealedBody>(body) {
         Ok(value) => value,
         Err(error) => return bad(&error),
     };
-    match mutate(state, |session| session.emit_sealed(&parsed.conversation_key, &parsed.plaintext))
-    {
-        Ok(view) => json(&view),
-        Err(error) => fail(&error),
-    }
+    crate::state::mutate(state, |host| {
+        host.with_mut(seat, |session| session.emit_sealed(&parsed.conversation_key, &parsed.plaintext))
+    })
 }
 
 pub(crate) fn open_sealed(body: &str) -> Reply {
@@ -29,10 +27,4 @@ pub(crate) fn open_sealed(body: &str) -> Reply {
     }
 }
 
-fn mutate<T, E: ToString>(
-    state: &Mutex<State>,
-    op: impl FnOnce(&mut Session) -> Result<T, E>,
-) -> Result<T, String> {
-    let mut guard = state.lock().map_err(|_| "lock".to_owned())?;
-    guard.with_mut(op)
-}
+

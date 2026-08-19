@@ -8,6 +8,7 @@ use std::sync::Mutex;
 struct Created {
     account: IdentityOnly,
     manifest: ManifestOnly,
+    seat: String,
 }
 
 #[derive(Deserialize)]
@@ -43,14 +44,14 @@ fn secret() -> String {
     "ab".repeat(32)
 }
 
-fn call(state: &Mutex<State>, method: &str, url: &str, body: &str) -> (u16, String) {
-    let reply = dispatch(state, method, url, body);
+fn call(state: &Mutex<State>, method: &str, url: &str, body: &str, seat: &str) -> (u16, String) {
+    let reply = dispatch(state, method, url, body, seat);
     (reply.status, reply.body)
 }
 
 fn create(state: &Mutex<State>) -> Created {
     let body = format!("{{\"password\":\"pw\",\"device_secret\":\"{}\"}}", secret());
-    let (status, raw) = call(state, "POST", "/v1/account", &body);
+    let (status, raw) = call(state, "POST", "/v1/account", &body, "");
     assert_eq!(status, 200, "{raw}");
     blazingly_json::from_str(&raw).expect("created")
 }
@@ -58,13 +59,13 @@ fn create(state: &Mutex<State>) -> Created {
 #[test]
 fn health_and_limits() {
     let state = Mutex::new(State::default());
-    let (status, body) = call(&state, "GET", "/health", "");
+    let (status, body) = call(&state, "GET", "/health", "", "");
     assert_eq!(status, 200);
     assert!(body.contains("true"));
-    let (status, body) = call(&state, "GET", "/v1/advertising/limits", "");
+    let (status, body) = call(&state, "GET", "/v1/advertising/limits", "", "");
     assert_eq!(status, 200);
     assert!(body.contains("market_only"));
-    let (status, _) = call(&state, "GET", "/nope", "");
+    let (status, _) = call(&state, "GET", "/nope", "", "");
     assert_eq!(status, 404);
 }
 
@@ -73,15 +74,16 @@ fn create_emit_verify_restore() {
     let state = Mutex::new(State::default());
     let created = create(&state);
     assert!(created.account.identity.starts_with("reedhold:identity:"));
+    let seat = &created.seat;
     let (status, raw) =
-        call(&state, "POST", "/v1/account/emit", "{\"kind\":\"post\",\"payload\":\"hello\"}");
+        call(&state, "POST", "/v1/account/emit", "{\"kind\":\"post\",\"payload\":\"hello\"}", seat);
     assert_eq!(status, 200, "{raw}");
     let event: EventBare = blazingly_json::from_str(&raw).expect("event");
     assert_eq!(event.kind, "post");
     let verify = format!("{{\"event_hex\":\"{}\"}}", event.event_hex);
-    let (status, raw) = call(&state, "POST", "/v1/account/verify", &verify);
+    let (status, raw) = call(&state, "POST", "/v1/account/verify", &verify, seat);
     assert_eq!(status, 200, "{raw}");
-    let (status, raw) = call(&state, "GET", "/v1/account/history", "");
+    let (status, raw) = call(&state, "GET", "/v1/account/history", "", seat);
     assert_eq!(status, 200, "{raw}");
     assert!(raw.contains("hello") || raw.contains("post"));
     let restore = format!(
@@ -89,7 +91,7 @@ fn create_emit_verify_restore() {
         secret(),
         created.manifest.manifest_hex
     );
-    let (status, raw) = call(&state, "POST", "/v1/account/restore", &restore);
+    let (status, raw) = call(&state, "POST", "/v1/account/restore", &restore, "");
     assert_eq!(status, 200, "{raw}");
     assert!(raw.contains(&created.account.identity));
 }
@@ -98,7 +100,8 @@ fn create_emit_verify_restore() {
 fn split_then_combine() {
     let state = Mutex::new(State::default());
     let created = create(&state);
-    let (status, raw) = call(&state, "POST", "/v1/account/split", "{\"threshold\":2,\"total\":3}");
+    let (status, raw) =
+        call(&state, "POST", "/v1/account/split", "{\"threshold\":2,\"total\":3}", &created.seat);
     assert_eq!(status, 200, "{raw}");
     let shares: Vec<ShareBare> = blazingly_json::from_str(&raw).expect("shares");
     assert_eq!(shares.len(), 3);
@@ -108,7 +111,7 @@ fn split_then_combine() {
         share_json(&shares[0]),
         share_json(&shares[2])
     );
-    let (status, raw) = call(&state, "POST", "/v1/account/combine", &combine);
+    let (status, raw) = call(&state, "POST", "/v1/account/combine", &combine, "");
     assert_eq!(status, 200, "{raw}");
     let restored: Created = blazingly_json::from_str(&raw).expect("combined");
     assert_eq!(restored.account.identity, created.account.identity);
@@ -123,7 +126,7 @@ fn sync_plan_never_requires_company() {
         "{{\"epoch\":5,\"candidates\":[{listed}],\"company\":\"{}\",\"relay_count\":3}}",
         "99".repeat(32)
     );
-    let (status, raw) = call(&state, "POST", "/v1/sync/plan", &body);
+    let (status, raw) = call(&state, "POST", "/v1/sync/plan", &body, "");
     assert_eq!(status, 200, "{raw}");
     let plan: PlanBare = blazingly_json::from_str(&raw).expect("plan");
     assert!(!plan.company_required);

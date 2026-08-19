@@ -12,9 +12,11 @@ Default listen: `127.0.0.1:4783`. Override with `REEDHOLD_HOST`.
 cargo run
 ```
 
-The process holds one unlocked identity plus optional in-memory overlays
-(talk, durable grid, chain, reputation, ads, work). It is not a source of
-truth. Company hosts are never required. There is no Kotlin / JNI binding.
+Each browser tab gets its own seat token (`X-Reedhold-Seat`). The host is
+not one shared user: a stranger in incognito does not become whoever last
+typed a password. Public aliases and topic rooms are shared; DMs and groups
+belong to the seat. Overlays (durable grid, chain, reputation, ads, work)
+are still in-process sandboxes. The host is not a source of truth.
 
 ```text
 GET  /health

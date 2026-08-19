@@ -34,14 +34,15 @@ struct ChatsOut {
     catalog: Vec<String>,
 }
 
-pub(crate) fn claim(state: &Mutex<State>, body: &str) -> Reply {
+pub(crate) fn claim(state: &Mutex<State>, seat: &str, body: &str) -> Reply {
     let parsed = match parse_json::<NickBody>(body) {
         Ok(value) => value,
         Err(error) => return bad(&error),
     };
     state::mutate(state, |host| {
-        let session = host.session.as_ref().ok_or_else(|| "no unlocked session".to_owned())?;
-        host.aliases.claim(session, &parsed.nick).map_err(|error| error.to_string())
+        let State { seats, aliases, .. } = host;
+        let session = seats.get(seat).ok_or_else(|| "no unlocked session".to_owned())?;
+        aliases.claim(session, &parsed.nick).map_err(|error| error.to_string())
     })
 }
 
@@ -56,52 +57,46 @@ pub(crate) fn lookup(state: &Mutex<State>, body: &str) -> Reply {
     })
 }
 
-pub(crate) fn add_contact(state: &Mutex<State>, body: &str) -> Reply {
+pub(crate) fn add_contact(state: &Mutex<State>, seat: &str, body: &str) -> Reply {
     let parsed = match parse_json::<ContactBody>(body) {
         Ok(value) => value,
         Err(error) => return bad(&error),
     };
     let petname = parsed.petname.unwrap_or_default();
     state::mutate(state, |host| {
-        let session = host.session.as_mut().ok_or_else(|| "no unlocked session".to_owned())?;
-        let view = session
-            .add_contact(&parsed.identity, &parsed.messaging_public, &petname)
-            .map_err(|error| error.to_string())?;
+        let view = host.seat_mut(seat)?.add_contact(
+            &parsed.identity,
+            &parsed.messaging_public,
+            &petname,
+        )
+        .map_err(|error| error.to_string())?;
         host.talk = None;
         ensure_talk(host)?;
         Ok(view)
     })
 }
 
-pub(crate) fn remove_contact(state: &Mutex<State>, body: &str) -> Reply {
+pub(crate) fn remove_contact(state: &Mutex<State>, seat: &str, body: &str) -> Reply {
     let parsed = match parse_json::<IdentityBody>(body) {
         Ok(value) => value,
         Err(error) => return bad(&error),
     };
     state::mutate_ok(state, |host| {
-        host.session
-            .as_mut()
-            .ok_or_else(|| "no unlocked session".to_owned())?
-            .remove_contact(&parsed.identity)
-            .map_err(|error| error.to_string())
+        host.seat_mut(seat)?.remove_contact(&parsed.identity).map_err(|error| error.to_string())
     })
 }
 
-pub(crate) fn contacts(state: &Mutex<State>) -> Reply {
-    state::inspect(state, |host| {
-        Ok(host.session.as_ref().ok_or_else(|| "no unlocked session".to_owned())?.contacts())
-    })
+pub(crate) fn contacts(state: &Mutex<State>, seat: &str) -> Reply {
+    state::inspect(state, |host| Ok(host.seat(seat)?.contacts()))
 }
 
-pub(crate) fn circles(state: &Mutex<State>) -> Reply {
-    state::inspect(state, |host| {
-        Ok(host.session.as_ref().ok_or_else(|| "no unlocked session".to_owned())?.circles())
-    })
+pub(crate) fn circles(state: &Mutex<State>, seat: &str) -> Reply {
+    state::inspect(state, |host| Ok(host.seat(seat)?.circles()))
 }
 
-pub(crate) fn chats(state: &Mutex<State>) -> Reply {
+pub(crate) fn chats(state: &Mutex<State>, seat: &str) -> Reply {
     state::inspect(state, |host| {
-        let session = host.session.as_ref().ok_or_else(|| "no unlocked session".to_owned())?;
+        let session = host.seat(seat)?;
         Ok(ChatsOut {
             nick: host.aliases.nick_of(&session.peer_hex()),
             contacts: session.contacts(),
@@ -117,18 +112,25 @@ pub(crate) fn ensure_talk(host: &mut State) -> Result<(), String> {
     if host.talk.is_some() {
         return Ok(());
     }
-    let session = host.session.as_ref().ok_or_else(|| "no unlocked session".to_owned())?;
-    let me = session.peer_hex();
-    let mut candidates = vec![me.clone()];
-    for contact in session.contacts() {
-        candidates.push(contact.identity);
+    if host.seats.is_empty() {
+        return Err("no unlocked session".to_owned());
+    }
+    let mut candidates = Vec::new();
+    for session in host.seats.values() {
+        candidates.push(session.peer_hex());
+        for contact in session.contacts() {
+            candidates.push(contact.identity);
+        }
     }
     for byte in 10_u8..=16 {
         candidates.push(format!("{byte:02x}").repeat(32));
     }
     let mut talk = TalkNet::open(1, &"00".repeat(32), &candidates, None, Some(2))
         .map_err(|error| error.to_string())?;
-    talk.online(&me).map_err(|error| error.to_string())?;
+    let peers: Vec<String> = host.seats.values().map(reedhold_api::Session::peer_hex).collect();
+    for peer in peers {
+        talk.online(&peer).map_err(|error| error.to_string())?;
+    }
     host.talk = Some(talk);
     Ok(())
 }

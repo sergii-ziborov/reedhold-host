@@ -59,8 +59,9 @@ pub(crate) fn open(state: &Mutex<State>, body: &str) -> Reply {
         let mut talk =
             TalkNet::open(parsed.epoch, &prior, &parsed.candidates, company, parsed.relay_count)
                 .map_err(|error| error.to_string())?;
-        if let Some(session) = host.session.as_ref() {
-            talk.online(&session.peer_hex()).map_err(|error| error.to_string())?;
+        let peers: Vec<String> = host.seats.values().map(reedhold_api::Session::peer_hex).collect();
+        for peer in peers {
+            talk.online(&peer).map_err(|error| error.to_string())?;
         }
         host.talk = Some(talk);
         Ok(())
@@ -79,14 +80,14 @@ pub(crate) fn block(state: &Mutex<State>, body: &str) -> Reply {
     peer_op(state, body, |talk, peer| talk.block(peer).map_err(|error| error.to_string()))
 }
 
-pub(crate) fn dm(state: &Mutex<State>, body: &str) -> Reply {
+pub(crate) fn dm(state: &Mutex<State>, seat: &str, body: &str) -> Reply {
     let parsed = match parse_json::<DmBody>(body) {
         Ok(value) => value,
         Err(error) => return bad(&error),
     };
     state::mutate(state, |host| {
         crate::social::ensure_talk(host)?;
-        let (talk, session) = host.talk_and_session().map_err(str::to_owned)?;
+        let (talk, session) = host.talk_and_seat(seat)?;
         let from = session.peer_hex();
         let route = talk
             .dm(session, &parsed.to, &parsed.to_msg_pub, &parsed.plaintext)
@@ -103,60 +104,60 @@ pub(crate) fn dm(state: &Mutex<State>, body: &str) -> Reply {
     })
 }
 
-pub(crate) fn create_group(state: &Mutex<State>, body: &str) -> Reply {
+pub(crate) fn create_group(state: &Mutex<State>, seat: &str, body: &str) -> Reply {
     let parsed = match parse_json::<NameBody>(body) {
         Ok(value) => value,
         Err(error) => return bad(&error),
     };
     state::mutate(state, |host| {
         crate::social::ensure_talk(host)?;
-        let (talk, session) = host.talk_and_session().map_err(str::to_owned)?;
+        let (talk, session) = host.talk_and_seat(seat)?;
         talk.create_circle(session, &parsed.name).map_err(|error| error.to_string())
     })
 }
 
-pub(crate) fn invite(state: &Mutex<State>, body: &str) -> Reply {
+pub(crate) fn invite(state: &Mutex<State>, seat: &str, body: &str) -> Reply {
     let parsed = match parse_json::<InviteBody>(body) {
         Ok(value) => value,
         Err(error) => return bad(&error),
     };
     state::mutate(state, |host| {
         crate::social::ensure_talk(host)?;
-        let (talk, session) = host.talk_and_session().map_err(str::to_owned)?;
+        let (talk, session) = host.talk_and_seat(seat)?;
         talk.invite(session, &parsed.group, &parsed.member, &parsed.member_msg_pub)
             .map_err(|error| error.to_string())
     })
 }
 
-pub(crate) fn send(state: &Mutex<State>, body: &str) -> Reply {
+pub(crate) fn send(state: &Mutex<State>, seat: &str, body: &str) -> Reply {
     let parsed = match parse_json::<GroupTextBody>(body) {
         Ok(value) => value,
         Err(error) => return bad(&error),
     };
     state::mutate(state, |host| {
         crate::social::ensure_talk(host)?;
-        let (talk, session) = host.talk_and_session().map_err(str::to_owned)?;
+        let (talk, session) = host.talk_and_seat(seat)?;
         talk.send_circle(session, &parsed.group, &parsed.plaintext)
             .map_err(|error| error.to_string())
     })
 }
 
-pub(crate) fn remove(state: &Mutex<State>, body: &str) -> Reply {
+pub(crate) fn remove(state: &Mutex<State>, seat: &str, body: &str) -> Reply {
     let parsed = match parse_json::<RemoveBody>(body) {
         Ok(value) => value,
         Err(error) => return bad(&error),
     };
     state::mutate(state, |host| {
         crate::social::ensure_talk(host)?;
-        let (talk, session) = host.talk_and_session().map_err(str::to_owned)?;
+        let (talk, session) = host.talk_and_seat(seat)?;
         talk.remove(session, &parsed.group, &parsed.member).map_err(|error| error.to_string())
     })
 }
 
-pub(crate) fn inbox(state: &Mutex<State>) -> Reply {
+pub(crate) fn inbox(state: &Mutex<State>, seat: &str) -> Reply {
     state::mutate(state, |host| {
         crate::social::ensure_talk(host)?;
-        let (talk, session) = host.talk_and_session().map_err(str::to_owned)?;
+        let (talk, session) = host.talk_and_seat(seat)?;
         talk.inbox(session).map_err(|error| error.to_string())
     })
 }

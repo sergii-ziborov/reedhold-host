@@ -1,8 +1,8 @@
 //! Account create / restore / emit / verify / password / history.
 
-use crate::body::{CreateOut, EmitBody, PasswordBody, SecretBody, VerifyBody, parse_json};
+use crate::body::{CreateOut, EmitBody, PasswordBody, SeatOut, SecretBody, VerifyBody, parse_json};
 use crate::reply::{Reply, bad, fail, json};
-use crate::state::State;
+use crate::state::{self, State};
 use reedhold_api::Session;
 use std::sync::Mutex;
 
@@ -13,12 +13,13 @@ pub(crate) fn create(state: &Mutex<State>, body: &str) -> Reply {
     };
     match Session::create(&parsed.password, &parsed.device_secret) {
         Ok(created) => {
-            let view = created.session.view();
+            let account = created.session.view();
             let manifest = created.manifest;
-            if let Ok(mut lock) = state.lock() {
-                lock.session = Some(created.session);
-            }
-            json(&CreateOut { account: view, manifest })
+            let seat = match state.lock() {
+                Ok(mut lock) => lock.issue_seat(created.session),
+                Err(_) => return fail("lock"),
+            };
+            json(&CreateOut { account, manifest, seat })
         }
         Err(error) => fail(&error.to_string()),
     }
@@ -34,78 +35,49 @@ pub(crate) fn restore(state: &Mutex<State>, body: &str) -> Reply {
     };
     match Session::restore(manifest, &parsed.password, &parsed.device_secret) {
         Ok(session) => {
-            let view = session.view();
-            if let Ok(mut lock) = state.lock() {
-                lock.session = Some(session);
-            }
-            json(&view)
+            let account = session.view();
+            let seat = match state.lock() {
+                Ok(mut lock) => lock.issue_seat(session),
+                Err(_) => return fail("lock"),
+            };
+            json(&SeatOut { account, seat })
         }
         Err(error) => fail(&error.to_string()),
     }
 }
 
-pub(crate) fn account(state: &Mutex<State>) -> Reply {
-    match locked(state).and_then(|guard| guard.view().map_err(str::to_owned)) {
-        Ok(view) => json(&view),
-        Err(error) => fail(&error),
-    }
+pub(crate) fn account(state: &Mutex<State>, seat: &str) -> Reply {
+    state::inspect(state, |host| host.view(seat))
 }
 
-pub(crate) fn manifest(state: &Mutex<State>) -> Reply {
-    match locked(state).and_then(|guard| guard.with(Session::manifest)) {
-        Ok(view) => json(&view),
-        Err(error) => fail(&error),
-    }
+pub(crate) fn manifest(state: &Mutex<State>, seat: &str) -> Reply {
+    state::inspect(state, |host| host.with(seat, Session::manifest))
 }
 
-pub(crate) fn history(state: &Mutex<State>) -> Reply {
-    match locked(state).and_then(|guard| guard.with(Session::history)) {
-        Ok(view) => json(&view),
-        Err(error) => fail(&error),
-    }
+pub(crate) fn history(state: &Mutex<State>, seat: &str) -> Reply {
+    state::inspect(state, |host| host.with(seat, Session::history))
 }
 
-pub(crate) fn emit(state: &Mutex<State>, body: &str) -> Reply {
+pub(crate) fn emit(state: &Mutex<State>, seat: &str, body: &str) -> Reply {
     let parsed = match parse_json::<EmitBody>(body) {
         Ok(value) => value,
         Err(error) => return bad(&error),
     };
-    match mutate(state, |session| session.emit(&parsed.kind, &parsed.payload)) {
-        Ok(view) => json(&view),
-        Err(error) => fail(&error),
-    }
+    state::mutate(state, |host| host.with_mut(seat, |session| session.emit(&parsed.kind, &parsed.payload)))
 }
 
-pub(crate) fn verify(state: &Mutex<State>, body: &str) -> Reply {
+pub(crate) fn verify(state: &Mutex<State>, seat: &str, body: &str) -> Reply {
     let parsed = match parse_json::<VerifyBody>(body) {
         Ok(value) => value,
         Err(error) => return bad(&error),
     };
-    match locked(state).and_then(|guard| guard.with(|session| session.verify(&parsed.event_hex))) {
-        Ok(view) => json(&view),
-        Err(error) => fail(&error),
-    }
+    state::inspect(state, |host| host.with(seat, |session| session.verify(&parsed.event_hex)))
 }
 
-pub(crate) fn password(state: &Mutex<State>, body: &str) -> Reply {
+pub(crate) fn password(state: &Mutex<State>, seat: &str, body: &str) -> Reply {
     let parsed = match parse_json::<PasswordBody>(body) {
         Ok(value) => value,
         Err(error) => return bad(&error),
     };
-    match mutate(state, |session| session.change_password(&parsed.password)) {
-        Ok(view) => json(&view),
-        Err(error) => fail(&error),
-    }
-}
-
-fn locked(state: &Mutex<State>) -> Result<std::sync::MutexGuard<'_, State>, String> {
-    state.lock().map_err(|_| "lock".to_owned())
-}
-
-fn mutate<T, E: ToString>(
-    state: &Mutex<State>,
-    op: impl FnOnce(&mut Session) -> Result<T, E>,
-) -> Result<T, String> {
-    let mut guard = state.lock().map_err(|_| "lock".to_owned())?;
-    guard.with_mut(op)
+    state::mutate(state, |host| host.with_mut(seat, |session| session.change_password(&parsed.password)))
 }

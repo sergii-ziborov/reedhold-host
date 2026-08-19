@@ -106,6 +106,15 @@ pub struct PlainOut {
 pub struct CreateOut {
     pub account: reedhold_api::AccountView,
     pub manifest: reedhold_api::ManifestView,
+    /// Browser seat. Not an identity. Each tab keeps its own.
+    pub seat: String,
+}
+
+/// Restore / open reply with a private seat token.
+#[derive(serde::Serialize)]
+pub struct SeatOut {
+    pub account: reedhold_api::AccountView,
+    pub seat: String,
 }
 
 /// Decode JSON `T`.

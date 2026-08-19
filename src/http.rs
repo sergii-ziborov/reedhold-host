@@ -23,9 +23,10 @@ pub fn serve(bind: &str) -> Result<(), String> {
 fn handle(state: &Mutex<State>, mut request: Request) {
     let method = request.method().to_string();
     let url = request.url().to_owned();
+    let seat = seat_token(&request);
     let mut raw = String::new();
     let _ = request.as_reader().read_to_string(&mut raw);
-    let reply = dispatch(state, &method, &url, &raw);
+    let reply = dispatch(state, &method, &url, &raw, &seat);
     let mut response = Response::from_string(reply.body).with_status_code(StatusCode(reply.status));
     if let Ok(header) = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]) {
         response.add_header(header);
@@ -34,12 +35,20 @@ fn handle(state: &Mutex<State>, mut request: Request) {
     let _ = request.respond(response);
 }
 
+fn seat_token(request: &Request) -> String {
+    request
+        .headers()
+        .iter()
+        .find(|header| header.field.equiv("X-Reedhold-Seat"))
+        .map_or_else(String::new, |header| header.value.as_str().trim().to_owned())
+}
+
 fn add_cors(response: &mut Response<std::io::Cursor<Vec<u8>>>) {
     if let Ok(header) = Header::from_bytes(&b"Access-Control-Allow-Origin"[..], &b"*"[..]) {
         response.add_header(header);
     }
     if let Ok(header) =
-        Header::from_bytes(&b"Access-Control-Allow-Headers"[..], &b"Content-Type"[..])
+        Header::from_bytes(&b"Access-Control-Allow-Headers"[..], &b"Content-Type, X-Reedhold-Seat"[..])
     {
         response.add_header(header);
     }
