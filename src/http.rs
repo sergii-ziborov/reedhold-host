@@ -1,6 +1,7 @@
 //! `tiny_http` loop. CORS is open so the Vite site can call localhost.
 
-use crate::routes::{State, dispatch};
+use crate::routes::dispatch;
+use crate::state::State;
 use std::sync::Mutex;
 use tiny_http::{Header, Request, Response, Server, StatusCode};
 
@@ -22,7 +23,9 @@ pub fn serve(bind: &str) -> Result<(), String> {
 fn handle(state: &Mutex<State>, mut request: Request) {
     let method = request.method().to_string();
     let url = request.url().to_owned();
-    let reply = dispatch(state, &method, &url, &mut request);
+    let mut raw = String::new();
+    let _ = request.as_reader().read_to_string(&mut raw);
+    let reply = dispatch(state, &method, &url, &raw);
     let mut response = Response::from_string(reply.body).with_status_code(StatusCode(reply.status));
     if let Ok(header) = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]) {
         response.add_header(header);

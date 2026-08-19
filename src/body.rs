@@ -1,10 +1,9 @@
 //! JSON read/write through `blazingly-json`.
 
-use serde::{Deserialize, Serialize};
-use tiny_http::Request;
+use serde::Deserialize;
 
 /// JSON object returned on errors.
-#[derive(Serialize)]
+#[derive(serde::Serialize)]
 pub struct ErrorBody {
     /// Human-readable failure.
     pub error: String,
@@ -37,15 +36,73 @@ pub struct PasswordBody {
     pub password: String,
 }
 
-/// Read the request body as `T`.
+/// Split the unlocked seed.
+#[derive(Deserialize)]
+pub struct SplitBody {
+    pub threshold: u8,
+    pub total: u8,
+}
+
+/// One Shamir share from a client.
+#[derive(Deserialize)]
+pub struct ShareIn {
+    pub index: u8,
+    pub body_hex: String,
+}
+
+/// Combine k-of-n shares into a new session.
+#[derive(Deserialize)]
+pub struct CombineBody {
+    pub password: String,
+    pub device_secret: String,
+    pub threshold: u8,
+    pub shares: Vec<ShareIn>,
+}
+
+/// Seal plaintext under a conversation key.
+#[derive(Deserialize)]
+pub struct SealedBody {
+    pub conversation_key: String,
+    pub plaintext: String,
+}
+
+/// Open a sealed envelope hex.
+#[derive(Deserialize)]
+pub struct OpenBody {
+    pub conversation_key: String,
+    pub envelope_hex: String,
+}
+
+/// Draw today's transitional relays.
+#[derive(Deserialize)]
+pub struct PlanBody {
+    pub epoch: u64,
+    pub prior_commit: Option<String>,
+    pub candidates: Vec<String>,
+    pub company: Option<String>,
+    pub relay_count: Option<u16>,
+}
+
+/// UTF-8 plaintext reply.
+#[derive(serde::Serialize)]
+pub struct PlainOut {
+    pub plaintext: String,
+}
+
+/// Create-account reply.
+#[derive(serde::Serialize)]
+pub struct CreateOut {
+    pub account: reedhold_api::AccountView,
+    pub manifest: reedhold_api::ManifestView,
+}
+
+/// Decode JSON `T`.
 ///
 /// # Errors
 ///
 /// Returns a display string when the body is not valid JSON for `T`.
-pub fn read_json<T: for<'de> Deserialize<'de>>(request: &mut Request) -> Result<T, String> {
-    let mut raw = String::new();
-    request.as_reader().read_to_string(&mut raw).map_err(|error| error.to_string())?;
-    blazingly_json::from_str(&raw).map_err(|error| error.to_string())
+pub fn parse_json<T: for<'de> Deserialize<'de>>(raw: &str) -> Result<T, String> {
+    blazingly_json::from_str(raw).map_err(|error| error.to_string())
 }
 
 /// Encode `value` as JSON.
@@ -53,7 +110,7 @@ pub fn read_json<T: for<'de> Deserialize<'de>>(request: &mut Request) -> Result<
 /// # Errors
 ///
 /// Returns a display string when encoding fails.
-pub fn write_json<T: Serialize>(value: &T) -> Result<String, String> {
+pub fn write_json<T: serde::Serialize>(value: &T) -> Result<String, String> {
     blazingly_json::to_string(value).map_err(|error| error.to_string())
 }
 
