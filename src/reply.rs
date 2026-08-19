@@ -36,3 +36,9 @@ pub fn bad(message: &str) -> Reply {
 pub fn fail(message: &str) -> Reply {
     Reply { status: 409, body: error_json(message) }
 }
+
+/// `{ "ok": true }` for open/online/block style calls.
+#[must_use]
+pub fn ok_flag() -> Reply {
+    json(&crate::body::FlagOut { ok: true })
+}

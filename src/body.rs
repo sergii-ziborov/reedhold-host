@@ -73,7 +73,7 @@ pub struct OpenBody {
     pub envelope_hex: String,
 }
 
-/// Draw today's transitional relays.
+/// Draw today's transitional relays. Also opens talk.
 #[derive(Deserialize)]
 pub struct PlanBody {
     pub epoch: u64,
@@ -81,6 +81,18 @@ pub struct PlanBody {
     pub candidates: Vec<String>,
     pub company: Option<String>,
     pub relay_count: Option<u16>,
+}
+
+/// One peer / holder / node hex.
+#[derive(Deserialize)]
+pub struct PeerBody {
+    pub peer: String,
+}
+
+/// `{ "ok": true }`.
+#[derive(serde::Serialize)]
+pub struct FlagOut {
+    pub ok: bool,
 }
 
 /// UTF-8 plaintext reply.

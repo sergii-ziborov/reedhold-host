@@ -3,13 +3,19 @@
 #![forbid(unsafe_code)]
 
 mod account;
+mod ads;
 mod body;
+mod chain;
+mod durable;
 mod recovery;
+mod rep;
 mod reply;
 mod routes;
 mod sealed;
 mod state;
 mod sync;
+mod talk;
+mod work;
 
 pub mod http;
 
@@ -20,3 +26,5 @@ pub use state::State;
 
 #[cfg(test)]
 mod api_tests;
+#[cfg(test)]
+mod sandbox_tests;
