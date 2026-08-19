@@ -1,0 +1,10 @@
+/target/
+**/*.rs.bk
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+.local/
+/PLAN.md
+/ROADMAP.md
+/NOTES.md

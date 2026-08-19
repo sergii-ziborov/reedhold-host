@@ -1,0 +1,29 @@
+[package]
+name = "reedhold-host"
+description = "Sync JSON HTTP host for Reedhold. Wraps reedhold-api. No Tokio in the protocol kernel."
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+authors = ["Sergii Ziborov <sergii@edgehawk.io>"]
+repository = "https://github.com/sergii-ziborov/reedhold-host"
+publish = false
+
+[dependencies]
+blazingly-json = "0.1.5"
+reedhold-api = { git = "https://github.com/sergii-ziborov/reedhold", version = "0.1.0" }
+serde = { version = "1.0.229", default-features = false, features = ["alloc", "derive"] }
+tiny_http = "0.12.0"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
